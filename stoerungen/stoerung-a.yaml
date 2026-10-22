@@ -1,0 +1,27 @@
+# Vorbereitete Störung. Anwenden mit: kubectl apply -f stoerungen/stoerung-a.yaml
+# Aufgabe: Finde heraus, was nicht stimmt, nur mit get, describe, logs und events.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stoerung-a
+  namespace: viertelwatt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stoerung-a
+  template:
+    metadata:
+      labels:
+        app: stoerung-a
+    spec:
+      containers:
+        - name: api
+          image: viertelwatt-daten:1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: viertelwatt-geheim
+                  key: DATABASE_URL

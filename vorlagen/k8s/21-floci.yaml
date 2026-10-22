@@ -1,0 +1,48 @@
+# S3-Ersatz im Cluster. Speichert im Arbeitsspeicher: Nach einem Neustart
+# des Pods sind die Rohdaten weg. Für die Übung reicht das.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: floci
+  namespace: viertelwatt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: floci
+  template:
+    metadata:
+      labels:
+        app: floci
+    spec:
+      # Kubernetes legt für jeden Service Umgebungsvariablen an, für diesen etwa
+      # FLOCI_PORT=tcp://10.96.x.x:4566. floci liest FLOCI_PORT als eigene Einstellung
+      # und erwartet eine Zahl, es würde sofort abstürzen. Deshalb abschalten.
+      enableServiceLinks: false
+      containers:
+        - name: floci
+          image: floci/floci:2.2.0   # festes Tag wie in compose.yaml
+          ports:
+            - containerPort: 4566
+          readinessProbe:            # erst bereit, wenn floci auf 4566 antwortet
+            tcpSocket:
+              port: 4566
+            periodSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: floci
+  namespace: viertelwatt
+spec:
+  selector:
+    app: floci
+  ports:
+    - port: 4566
+      targetPort: 4566
