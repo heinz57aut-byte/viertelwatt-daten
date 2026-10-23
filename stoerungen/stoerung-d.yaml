@@ -1,0 +1,29 @@
+# Vorbereitete Störung. Anwenden mit: kubectl apply -f stoerungen/stoerung-d.yaml
+# Aufgabe: Finde heraus, was nicht stimmt, nur mit get, describe, logs und events.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stoerung-d
+  namespace: viertelwatt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stoerung-d
+  template:
+    metadata:
+      labels:
+        app: stoerung-d
+    spec:
+      containers:
+        - name: api
+          image: viertelwatt-daten:1.0.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              value: postgresql://viertelwatt:falsch@db:5432/viertelwatt
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            periodSeconds: 5

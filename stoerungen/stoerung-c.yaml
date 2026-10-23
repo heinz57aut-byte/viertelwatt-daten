@@ -1,0 +1,22 @@
+# Vorbereitete Störung. Anwenden mit: kubectl apply -f stoerungen/stoerung-c.yaml
+# Aufgabe: Finde heraus, was nicht stimmt, nur mit get, describe, logs und events.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stoerung-c
+  namespace: viertelwatt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stoerung-c
+  template:
+    metadata:
+      labels:
+        app: stoerung-c
+    spec:
+      containers:
+        - name: api
+          image: viertelwatt-daten:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "viertelwatt.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,66 @@
+# Die Monatsauswertung, die im August ausgefallen ist (Vorfall 8),
+# läuft jetzt jede Nacht um 03:30 Wiener Zeit von selbst.
+# Nicht zwischen 02:00 und 03:00: Bei der Umstellung auf Sommerzeit gibt es diese
+# Stunde nicht, der Lauf fiele aus.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etl
+  namespace: viertelwatt
+spec:
+  schedule: "30 3 * * *"
+  timeZone: Europe/Vienna
+  concurrencyPolicy: Forbid        # nie zwei Läufe gleichzeitig
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2              # höchstens zwei Wiederholungen nach Fehler
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: etl
+              image: viertelwatt-daten:1.0.0
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "viertelwatt.etl"]
+              envFrom:
+                - configMapRef:
+                    name: viertelwatt-config
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: viertelwatt-geheim
+                      key: DATABASE_URL
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: viertelwatt-geheim
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: viertelwatt-geheim
+                      key: AWS_SECRET_ACCESS_KEY
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

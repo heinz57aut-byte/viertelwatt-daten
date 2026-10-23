@@ -1,0 +1,12 @@
+# Nicht geheime Einstellungen. Geheimes kommt aus dem Secret viertelwatt-geheim,
+# das mit kubectl create secret angelegt wird und nie in Git liegt.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: viertelwatt-config
+  namespace: viertelwatt
+data:
+  S3_BUCKET: viertelwatt-rohdaten
+  S3_PREFIX: rohdaten/
+  AWS_ENDPOINT_URL: http://floci:4566
+  AWS_DEFAULT_REGION: eu-central-1

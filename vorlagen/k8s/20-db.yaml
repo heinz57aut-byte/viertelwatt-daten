@@ -1,0 +1,77 @@
+# Datenbank: genau eine Instanz, Daten auf einem PersistentVolumeClaim.
+# Im echten Betrieb nähme man ein StatefulSet oder gleich RDS beziehungsweise
+# Azure Database for PostgreSQL.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-daten
+  namespace: viertelwatt
+spec:
+  accessModes: ["ReadWriteOnce"]   # streng genommen: ReadWriteOncePod, ein einziger Pod
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: viertelwatt
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # nie zwei Datenbanken gleichzeitig auf demselben Volume
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16   # ab postgres:18 liegt PGDATA anders, Pfade unten anpassen
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: viertelwatt
+            - name: POSTGRES_DB
+              value: viertelwatt
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: viertelwatt-geheim
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: daten
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-U", "viertelwatt", "-d", "viertelwatt"]
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: daten
+          persistentVolumeClaim:
+            claimName: db-daten
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: viertelwatt
+spec:
+  selector:
+    app: db
+  ports:
+    - port: 5432
+      targetPort: 5432
