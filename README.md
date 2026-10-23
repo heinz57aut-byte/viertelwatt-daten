@@ -5,7 +5,7 @@
 Die Viertelwatt GmbH rechnet für Energiegemeinschaften ab. Angefangen hat alles mit einem
 Jupyter-Notebook, mit dem Lena Brandl die Viertelstundenwerte ihrer eigenen Gemeinschaft
 Hofstrom ausgewertet hat. Hofstrom ist bis heute die erste Kundin, ihre Zählpunkte beginnen
-mit `HOF-`. In diesem Kurs bringst du die Auswertung in einen nachvollziehbaren Betrieb: Git,
+mit `HOF-`. In diesem Kurs machst Du die Auswertung nachvollziehbar: Git,
 Container, Pipeline, AWS und Kubernetes.
 
 ## Inhalt
