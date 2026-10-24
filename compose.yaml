@@ -1,0 +1,64 @@
+services:
+  floci:
+    image: floci/floci:2.2.0
+    ports:
+      - "127.0.0.1:4566:4566"
+    environment:
+      FLOCI_STORAGE_MODE: persistent
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      FLOCI_SERVICES_IAM_ENFORCEMENT_ENABLED: ${FLOCI_IAM_PRUEFUNG:-false}
+    volumes:
+      - floci-daten:/app/data
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: viertelwatt
+      POSTGRES_DB: viertelwatt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in .env}
+    volumes:
+      - db-daten:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U viertelwatt -d viertelwatt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    image: viertelwatt-daten:dev
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql://viertelwatt:${POSTGRES_PASSWORD}@db:5432/viertelwatt
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+
+  etl:
+    build: .
+    image: viertelwatt-daten:dev
+    command: ["python", "-m", "viertelwatt.etl"]
+    environment:
+      DATABASE_URL: postgresql://viertelwatt:${POSTGRES_PASSWORD}@db:5432/viertelwatt
+      S3_BUCKET: viertelwatt-rohdaten
+      S3_PREFIX: rohdaten/
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_DEFAULT_REGION: eu-central-1
+      AWS_ACCESS_KEY_ID: ${ETL_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${ETL_SECRET_ACCESS_KEY:-test}
+    depends_on:
+      db:
+        condition: service_healthy
+      floci:
+        condition: service_healthy
+    profiles: ["job"]
+
+volumes:
+  floci-daten:
+  db-daten:

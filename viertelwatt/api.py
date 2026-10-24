@@ -19,7 +19,7 @@ from viertelwatt.kern import deckungsgrad, prognose
 
 VERSION = os.environ.get("APP_VERSION", "dev")
 
-app = FastAPI(title="viertelwatt-daten", version=VERSION)
+app = FastAPI(title="viertelwatt-daten(Lab 3)", version=VERSION)
 
 
 def verbindung():
