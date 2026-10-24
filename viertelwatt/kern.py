@@ -61,7 +61,8 @@ def zahl(text: str) -> Decimal:
     Er wird abgelehnt, statt still falsch gelesen zu werden (Vorfall 6).
     """
     t = text.strip()
-    t = t.replace(".", "") # wie die alte Analyse-Datei: Punkt als Tausendertrenner
+    if "." in t:
+        raise FormatFehler(f"Dezimalpunkt statt Komma: {text!r}")
     if not ZAHLFORMAT.fullmatch(t):
         raise FormatFehler(f"keine Zahl: {text!r}")
     return Decimal(t.replace(",", "."))
